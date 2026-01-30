@@ -1,0 +1,986 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>《Java程序设计》课程设计说明书 - 俄罗斯方块</title>
+    <style>
+        body {
+            font-family: 'SimSun', '宋体', serif;
+            line-height: 1.8;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 20px auto;
+            padding: 2cm;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            box-sizing: border-box;
+        }
+        h1, h2, h3, h4 {
+            font-family: 'SimHei', '黑体', sans-serif;
+            color: #333;
+            margin-top: 24px;
+            margin-bottom: 16px;
+        }
+        h1 { font-size: 22pt; text-align: center; margin-bottom: 40px; }
+        h2 { font-size: 16pt; border-bottom: 2px solid #333; padding-bottom: 6px; }
+        h3 { font-size: 14pt; border-bottom: 1px solid #ccc; padding-bottom: 4px; }
+        h4 { font-size: 12pt; border-bottom: none; }
+        p, li {
+            font-size: 12pt;
+            text-align: justify;
+            text-indent: 2em;
+        }
+        ul, ol {
+            padding-left: 2.5em;
+        }
+        li {
+            margin-bottom: 8px;
+            text-indent: 0;
+        }
+        pre {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 4px;
+            font-size: 10pt;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            text-indent: 0;
+        }
+        code {
+            font-family: Consolas, 'Courier New', monospace;
+        }
+        .cover-info {
+            font-size: 14pt;
+            line-height: 2.5;
+            text-align: center;
+            margin: 80px 0;
+        }
+        .appendix-code {
+            font-size: 9pt; /* 小五号字 */
+            line-height: 16pt;
+            column-count: 2;
+            column-gap: 20px;
+        }
+        .appendix-code pre {
+             font-size: inherit;
+             line-height: inherit;
+             padding: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>《Java程序设计》课程设计说明书</h1>
+
+        <div class="cover-info">
+            <p><strong>课题名称：</strong> <u>&nbsp;&nbsp;基于Java Swing的俄罗斯方块游戏&nbsp;&nbsp;</u></p>
+            <p><strong>专&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;业：</strong> <u>&nbsp;&nbsp;计算机科学与技术&nbsp;&nbsp;</u></p>
+            <p><strong>班&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;级：</strong> <u>&nbsp;&nbsp;计科XX班&nbsp;&nbsp;</u></p>
+            <p><strong>姓&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;名：</strong> <u>&nbsp;&nbsp;XXX&nbsp;&nbsp;</u></p>
+            <p><strong>指导教师：</strong> <u>&nbsp;&nbsp;XXX&nbsp;&nbsp;</u></p>
+            <p><strong>设计时间：</strong> <u>&nbsp;&nbsp;XXXX年XX月XX日&nbsp;&nbsp;</u></p>
+        </div>
+
+        <div style="page-break-after: always;"></div>
+
+        <h2>项目摘要</h2>
+        <p>
+本项目基于Java语言和Swing图形库实现了经典的俄罗斯方块游戏。项目采用模块化设计，分为主程序入口、主窗口、核心游戏逻辑、方块预览、数据模型和数据持久化等模块。游戏支持方块的移动、旋转、加速下落、消行计分、排行榜、存档/读档、倒计时等功能，界面友好，交互流畅。通过本项目，巩固了Java面向对象编程、GUI事件处理、定时器驱动、文件IO与序列化等知识点，适合作为Java课程设计或综合实践案例。
+        </p>
+
+        <h2>主要类（模块）之间的调用和依赖关系图</h2>
+        <div>
+        <pre class="mermaid" style="font-size: 18px;">
+flowchart TD
+    Main["Main (主入口)"] --> TetrisGame["TetrisGame (主窗口)"]
+    TetrisGame --> TetrisPanel["TetrisPanel (游戏面板)"]
+    TetrisGame --> NextBlockPanel["NextBlockPanel (下一个方块)"]
+    TetrisGame --> HighScoreManager["HighScoreManager (排行榜)"]
+    TetrisPanel --> Block["Block (方块)"]
+    TetrisPanel --> GameData["GameData (存档)"]
+    NextBlockPanel --> Block
+    HighScoreManager --> HighScoreEntry["HighScoreEntry (分数条目)"]
+        </pre>
+        </div>
+
+        <h2>程序从启动到结束的宏观流程图</h2>
+        <div>
+        <pre class="mermaid" style="font-size: 18px;">
+flowchart TD
+    A["开始"] --> B["创建TetrisGame主窗口"]
+    B --> C["初始化UI组件"]
+    C --> D["显示欢迎界面"]
+    D --> E["等待用户操作"]
+    E --> F["点击新游戏"]
+    F --> G["启动5秒倒计时"]
+    G --> H["开始游戏主循环"]
+    H --> I["玩家操作方块"]
+    I --> H
+    H --> J["游戏是否结束?"]
+    J --否--> H
+    J --是--> K["显示游戏结束对话框"]
+    K --> L["是否上榜?"]
+    L --是--> M["记录分数"]
+    L --否--> N["等待选择"]
+    M --> N
+    N --重新游戏--> F
+    N --退出--> O["结束"]
+        </pre>
+        </div>
+
+        <h2>游戏主循环流程图</h2>
+        <div>
+        <pre class="mermaid" style="font-size: 18px;">
+flowchart TD
+    A["Timer触发"] --> B["运行且未暂停?"]
+    B --否--> Z["结束本次滴答"]
+    B --是--> C["canMove()能否下落一格"]
+    C --能--> D["curRow++"]
+    C --不能--> E["mergeBlock() 固定方块"]
+    E --> F["clearLines() 检查消行并计分"]
+    F --> G["spawnBlock() 生成新方块"]
+    G --> H["新方块是否直接碰撞"]
+    H --是--> I["gameOver = true, 停止Timer"]
+    H --否--> J["继续"]
+    I --> Z
+    D --> K["repaint() 刷新界面"]
+    J --> K
+        </pre>
+        </div>
+
+        <h2>一、课题设计任务</h2>
+        <p>
+            本次课程设计的主要任务是使用Java语言和Swing图形库，开发一款功能完善、界面友好的经典俄罗斯方块游戏。该游戏旨在巩固和实践Java面向对象编程、GUI事件处理、多线程（Timer实现）、数据持久化等核心知识点。
+        </p>
+        <p>
+            具体需要完成的功能要求如下：
+        </p>
+        <ol>
+            <li><strong>基本游戏流程：</strong>实现方块的随机生成、从顶部下落、通过键盘左右移动和旋转方块、加速下落以及直接"瞬移"到底部的功能。</li>
+            <li><strong>游戏规则实现：</strong>当方块落到底部或与其他方块碰撞后，能够自动固定。当一行被方块完全填满时，该行自动消除并计分。</li>
+            <li><strong>计分与等级系统：</strong>根据一次性消除的行数给予不同奖励分数（例如，消除四行"Tetris"获得高分）。随着分数的增加，游戏速度（方块下落速度）应相应提升，增加游戏挑战性。</li>
+            <li><strong>用户界面与交互：</strong>设计直观的游戏主界面，包括游戏主区域、显示下一个方块的预览区、当前分数和状态信息栏。提供"新游戏"、"暂停/继续"、"退出"等基本操作。</li>
+            <li><strong>数据持久化：</strong>
+                <ul>
+                    <li>实现游戏进度的保存和加载功能，允许玩家中断游戏后能从上次的进度继续。</li>
+                    <li>建立一个本地排行榜，记录高分玩家的姓名和分数，并在游戏结束后更新。</li>
+                </ul>
+            </li>
+            <li><strong>用户体验优化：</strong>增加游戏开始前的倒计时功能，并在游戏结束时提供清晰的提示信息和重新开始的选项。</li>
+        </ol>
+
+        <h2>二、任务分析</h2>
+        <p>
+            要完成上述任务，需要将整个系统分解为几个逻辑上独立但相互协作的部分。首先，选用Java Swing作为GUI工具包，因为它包含在标准Java库中，无需额外配置，并且能够满足本项目的全部界面需求。项目构建采用Maven进行管理，便于标准化构建流程和未来可能的依赖扩展。
+        </p>
+        <p>
+            整个任务的处理过程可以分析如下：
+        </p>
+        <ul>
+            <li><strong>表现层 (UI Layer)：</strong> 使用 <code>JFrame</code> 作为主窗口，<code>JPanel</code> 作为核心画布。通过重写 <code>paintComponent</code> 方法来绘制游戏棋盘、方块等所有视觉元素。利用 <code>KeyListener</code> 监听键盘输入，实现用户交互。UI布局采用Swing的布局管理器（如 <code>BorderLayout</code>）进行组织。</li>
+            <li><strong>逻辑层 (Logic Layer)：</strong> 游戏的核心循环不应阻塞UI线程，因此采用 <code>javax.swing.Timer</code> 来驱动方块的定时下落，保证了良好的事件调度。游戏逻辑，如方块的移动、旋转、碰撞检测和消行计分，将封装在核心的游戏面板类中，作为主要算法实现。</li>
+            <li><strong>数据层 (Data Layer)：</strong> 游戏中的实体，如方块（Block）和游戏状态（GameData），将被抽象为独立的Java类。方块的形状使用二维数组表示。对于数据持久化，采用两种策略：对于结构化的游戏存档，使用Java的序列化机制，将整个游戏状态对象写入二进制文件；对于排行榜，则使用易于读写的纯文本文件。</li>
+        </ul>
+
+        <h2>三、概要设计（总体设计）</h2>
+        <h3>3.1 功能模块划分</h3>
+        <p>根据任务分析，项目可以划分为以下几个核心功能模块：</p>
+        <ul>
+            <li><strong>主程序入口模块 (Main.java):</strong> 负责安全地启动Swing应用。</li>
+            <li><strong>游戏主窗口模块 (TetrisGame.java):</strong> 程序的顶层框架，负责UI组件的整合与布局，以及菜单事件的高层协调。</li>
+            <li><strong>核心游戏逻辑模块 (TetrisPanel.java):</strong> 实现游戏主循环、画面绘制、键盘事件处理、碰撞检测、计分等所有核心玩法。</li>
+            <li><strong>方块预览模块 (NextBlockPanel.java):</strong> 一个独立的UI组件，用于显示下一个方块。</li>
+            <li><strong>数据模型模块 (Block.java, GameData.java, HighScoreEntry.java):</strong> 定义游戏中的基本数据结构。</li>
+            <li><strong>数据持久化模块 (HighScoreManager.java 及 TetrisGame中的序列化方法):</strong> 负责将游戏数据写入文件和从文件读取。</li>
+        </ul>
+        <h3>3.2 模块调用关系图</h3>
+        <p>下图清晰地展示了项目中主要类（模块）之间的调用和依赖关系。</p>
+        <pre><code class="language-mermaid">
+graph TD;
+    Main --&gt; TetrisGame;
+    TetrisGame --&gt; TetrisPanel;
+    TetrisGame --&gt; NextBlockPanel;
+    TetrisGame --&gt; HighScoreManager;
+    TetrisPanel --&gt; Block;
+    TetrisPanel --&gt; GameData;
+    NextBlockPanel --&gt; Block;
+    HighScoreManager --&gt; HighScoreEntry;
+    
+    subgraph "UI (Swing)"
+        TetrisGame[TetrisGame (JFrame)];
+        TetrisPanel[TetrisPanel (JPanel)];
+        NextBlockPanel[NextBlockPanel (JPanel)];
+    end
+
+    subgraph "Game Logic & Data"
+        Block;
+        GameData;
+        HighScoreManager;
+        HighScoreEntry;
+    end
+        </code></pre>
+        <h3>3.3 程序总体流程图</h3>
+        <p>程序从启动到结束的宏观流程如下图所示。</p>
+        <pre><code class="language-mermaid">
+graph TD
+    A[开始] --&gt; B{创建TetrisGame主窗口};
+    B --&gt; C{初始化UI组件};
+    C --&gt; D{显示欢迎界面};
+    D --&gt; E{等待用户操作};
+    E --&gt; F[点击"新游戏"];
+    F --&gt; G{启动5秒倒计时};
+    G --&gt; H{开始游戏主循环};
+    H --&gt; I{玩家操作方块};
+    I --&gt; H;
+    H --&gt; J{游戏是否结束?};
+    J --&gt;|否| H;
+    J --&gt;|是| K{显示游戏结束对话框};
+    K --&gt; L{是否上榜?};
+    L --&gt;|是| M{记录分数};
+    L --&gt;|否| N{等待选择};
+    M --&gt; N;
+    N --&gt;|重新游戏| F;
+    N --&gt;|退出| O[结束];
+        </code></pre>
+        
+        <h2>四、详细设计</h2>
+        <h3>4.1 数据逻辑结构</h3>
+        <h4>ADT Block (方块)</h4>
+        <p>
+            描述一个俄罗斯方块。
+            <strong>Data:</strong>
+            包含一个二维整型数组代表其形状，一个整型值代表其颜色索引。
+            <strong>Operations:</strong>
+        </p>
+        <ul>
+            <li><code>Block(shape, color)</code>: 构造函数，创建一个指定形状和颜色的方块。</li>
+            <li><code>rotate()</code>: 核心算法，通过矩阵变换返回一个新的旋转90度后的形状数组。</li>
+            <li><code>randomBlock()</code>: 静态工厂方法，从预定义的7种形状中随机返回一个方块实例。</li>
+        </ul>
+        <h4>ADT GameBoard (游戏棋盘)</h4>
+        <p>
+            描述游戏主区域的状态和行为，此ADT的实现主要分布在 <code>TetrisPanel</code> 类中。
+            <strong>Data:</strong>
+            一个20x10的二维整型数组，0表示空格，非0表示已固定方块的颜色索引。
+            <strong>Operations:</strong>
+        </p>
+        <ul>
+            <li><code>canMove(row, col, shape)</code>: 碰撞检测算法，判断指定形状能否移动到目标位置。</li>
+            <li><code>mergeBlock()</code>: 将当前活动方块的颜色信息写入棋盘数组中，使其固定。</li>
+            <li><code>clearLines()</code>: 检查并消除所有满行，并返回消除的行数。</li>
+        </ul>
+
+        <h3>4.2 数据存储结构</h3>
+        <p>程序中主要的数据结构和全局变量（类成员变量）如下：</p>
+        <ul>
+            <li><strong>TetrisPanel 类:</strong>
+                <ul>
+                    <li><code>int[][] board</code>: 存储整个游戏棋盘的状态。</li>
+                    <li><code>Block currentBlock</code>: 当前正在下落的方块对象。</li>
+                    <li><code>int curRow, curCol</code>: 当前方块的左上角在棋盘上的行、列坐标。</li>
+                    <li><code>int score</code>: 当前游戏得分。</li>
+                    <li><code>boolean running, paused, gameOver</code>: 控制游戏状态的布尔标志。</li>
+                    <li><code>javax.swing.Timer timer</code>: 驱动游戏循环的定时器。</li>
+                </ul>
+            </li>
+            <li><strong>GameData 类 (用于序列化):</strong>
+                <ul>
+                    <li>与 <code>TetrisPanel</code> 中的核心状态变量类似，用于整体打包保存。</li>
+                </ul>
+            </li>
+            <li><strong>Block 类:</strong>
+                <ul>
+                    <li><code>int[][] shape</code>: 定义方块形状。</li>
+                    <li><code>int colorIndex</code>: 颜色索引。</li>
+                </ul>
+            </li>
+        </ul>
+        
+        <h3>4.3 各模块流程图及算法</h3>
+        <h4>碰撞检测算法 <code>canMove()</code></h4>
+        <p>
+            这是游戏的核心算法之一，用于判断方块是否可以移动到新的位置。
+        </p>
+        <ol>
+            <li>遍历活动方块形状数组 `shape` 的每一个格子。</li>
+            <li>如果当前格子是方块实体（值不为0）：</li>
+            <li>计算该格子在游戏棋盘上的绝对坐标 (<code>nr = targetRow + r</code>, <code>nc = targetCol + c</code>)。</li>
+            <li>检查该绝对坐标是否超出棋盘边界（上、下、左、右）。如果越界，则表示不能移动，返回 <code>false</code>。</li>
+            <li>检查棋盘对应位置 <code>board[nr][nc]</code> 是否已经有固定的方块（值不为0）。如果有，则表示碰撞，不能移动，返回 <code>false</code>。</li>
+            <li>如果遍历完所有实体格子都没有触发上述两种情况，则表示可以移动，返回 <code>true</code>。</li>
+        </ol>
+
+        <h4>游戏主循环流程图 (`handleGameTick`)</h4>
+        <pre><code class="language-mermaid">
+graph TD
+    A[Timer触发] --&gt; B{游戏是否在运行且未暂停?};
+    B --&gt;|否| Z[结束本次滴答];
+    B --&gt;|是| C{调用canMove()判断能否下落一格};
+    C --&gt;|能| D[curRow++];
+    C --&gt;|不能| E{mergeBlock() 固定方块};
+    E --&gt; F{clearLines() 检查消行并计分};
+    F --&gt; G{spawnBlock() 生成新方块};
+    G --&gt; H{新方块是否直接碰撞?};
+    H --&gt;|是 (触顶)| I{gameOver = true, 停止Timer};
+    H --&gt;|否| J{继续};
+    I --&gt; Z;
+    D --&gt; K[repaint() 刷新界面];
+    J --&gt; K;
+        </code></pre>
+
+        <h2>五、测试</h2>
+        <p>
+            为确保程序的稳定性和功能的完整性，我们进行了一系列的功能测试。测试主要采用黑盒测试方法，模拟真实玩家的操作。
+        </p>
+        <ul>
+            <li><strong>基本功能测试：</strong>
+                <ul>
+                    <li><strong>方块移动：</strong>测试左、右、下、旋转键是否正常工作，边界检测是否准确。</li>
+                    <li><strong>方块瞬移：</strong>测试空格键是否能让方块立即落到底部正确位置。</li>
+                </ul>
+            </li>
+            <li><strong>游戏逻辑测试：</strong>
+                <ul>
+                    <li><strong>消行与计分：</strong>分别测试消除1、2、3、4行时，行是否被正确消除，上方方块是否下移，分数是否按规则增加。</li>
+                    <li><strong>游戏结束：</strong>测试当方块堆叠到顶端时，游戏是否能正确结束并弹出提示。</li>
+                </ul>
+            </li>
+            <li><strong>高级功能测试：</strong>
+                <ul>
+                    <li><strong>暂停/继续：</strong>反复测试暂停功能是否能冻结游戏，继续后是否恢复正常。</li>
+                    <li><strong>保存/加载：</strong>在不同游戏局面下（如下落中、刚生成等）进行保存，退出后重新加载，检查游戏状态是否被完整还原。</li>
+                    <li><strong>排行榜：</strong>在游戏结束后，测试高分能否正确记录到排行榜，姓名输入是否正常，排行榜显示是否正确。</li>
+                </ul>
+            </li>
+        </ul>
+        <p>
+            <strong>测试结论：</strong>经过多轮测试，所有设计的功能均能正常运行。程序表现稳定，未发现重大逻辑错误或崩溃现象，达到了课程设计的预期目标。
+        </p>
+        
+        <h2>六、课程设计心得</h2>
+        <p>
+            通过本次Java俄罗斯方块的课程设计，我收获颇丰。这不仅是一次将理论知识付诸实践的绝佳机会，更是一次对软件工程思想的初步探索。从最初的需求分析，到功能模块的划分，再到具体的编码实现和最终的测试，我完整地体验了一个小型项目的开发全过程。
+        </p>
+        <p>
+            在设计阶段，我深刻体会到了面向对象编程思想的优势。通过将游戏的不同部分（如主窗口、游戏面板、方块、数据管理器）抽象成独立的类，极大地降低了代码的耦合度，使得每个模块的职责单一且明确，便于开发和后期维护。特别是逻辑与UI的分离，让我明白了后台数据处理与前台界面展示应该分开管理的重要性。
+        </p>
+        <p>
+            编码过程中，也遇到了一些挑战。例如，碰撞检测算法的逻辑需要非常严谨，任何一个边界条件的疏忽都可能导致bug。Swing的事件调度机制也是一个学习重点，理解并正确使用 <code>SwingUtilities.invokeLater</code> 和 <code>javax.swing.Timer</code>，是保证GUI应用流畅不卡顿的关键。数据持久化方面，通过同时使用序列化和文本文件两种方式，我对Java的IO操作有了更深入的理解，也明白了在不同场景下选择合适数据存储方案的意义。
+        </p>
+        <p>
+            总而言之，这次课程设计不仅锻炼了我的编码能力，更提升了我的系统设计和问题解决能力。它让我认识到，一个成功的软件不只是代码的堆砌，更是良好设计、严谨逻辑和反复测试的结晶。
+        </p>
+        
+        <h2>七、参考文献</h2>
+        <ol>
+            <li>Liang, Y. Daniel. <em>Introduction to Java Programming and Data Structures, Comprehensive Version</em>. Pearson, 2018.</li>
+            <li>Bloch, Joshua. <em>Effective Java</em>. 3rd ed., Addison-Wesley Professional, 2018.</li>
+            <li>Oracle Corporation. "Java Swing Tutorials." Oracle Help Center.</li>
+        </ol>
+
+        <div style="page-break-after: always;"></div>
+        
+        <h2>八、附录（源代码）</h2>
+        
+        <h3>Main.java</h3>
+        <div class="appendix-code">
+        <pre><code>package org.example;
+
+/**
+ * 游戏主入口类
+ * &lt;p&gt;
+ * 负责启动整个俄罗斯方块游戏。
+ * 使用 {@code SwingUtilities.invokeLater} 确保UI操作在事件分发线程（EDT）中执行，
+ * 这是Swing编程的最佳实践，可以避免线程安全问题。
+ * &lt;/p&gt;
+ */
+public class Main {
+    /**
+     * 程序主方法
+     * @param args 命令行参数（未使用）
+     */
+    public static void main(String[] args) {
+        // 确保Swing组件的创建和更新在事件分发线程中进行
+        javax.swing.SwingUtilities.invokeLater(() -&gt; {
+            new TetrisGame();
+        });
+    }
+}
+        </code></pre>
+        </div>
+
+        <h3>Block.java</h3>
+        <div class="appendix-code">
+        <pre><code>package org.example;
+
+import java.io.Serializable;
+import java.util.Random;
+
+/**
+ * 代表一个俄罗斯方块。
+ * &lt;p&gt;
+ * 包含了方块的形状 (一个二维数组)、颜色索引，以及旋转逻辑。
+ * 这个类是可序列化的，以便于保存游戏状态。
+ * &lt;/p&gt;
+ */
+public class Block implements Serializable {
+    /** 方块的形状，用二维数组表示，非0部分为方块实体 */
+    public int[][] shape;
+    /** 方块的颜色索引，对应于 TetrisPanel 中的 COLORS 数组 */
+    public int colorIndex;
+
+    /** 所有可能的方块形状定义 */
+    private static final int[][][] SHAPES = {
+            // I
+            {{0,0,0,0},{1,1,1,1},{0,0,0,0},{0,0,0,0}},
+            // J
+            {{2,0,0},{2,2,2},{0,0,0}},
+            // L
+            {{0,0,3},{3,3,3},{0,0,0}},
+            // O
+            {{4,4},{4,4}},
+            // S
+            {{0,5,5},{5,5,0},{0,0,0}},
+            // T
+            {{0,6,0},{6,6,6},{0,0,0}},
+            // Z
+            {{7,7,0},{0,7,7},{0,0,0}}
+    };
+    /** 与 SHAPES 对应的颜色索引 */
+    private static final int[] COLORS = {1,2,3,4,5,6,7};
+
+    /**
+     * 构造函数
+     * @param shape 方块的形状
+     * @param colorIndex 方块的颜色索引
+     */
+    public Block(int[][] shape, int colorIndex) {
+        this.shape = new int[shape.length][shape[0].length];
+        for (int i = 0; i < shape.length; i++)
+            System.arraycopy(shape[i], 0, this.shape[i], 0, shape[0].length);
+        this.colorIndex = colorIndex;
+    }
+
+    /**
+     * 静态工厂方法，随机生成一个方块。
+     * @return 一个随机形状和颜色的 Block 对象
+     */
+    public static Block randomBlock() {
+        Random rand = new Random();
+        int idx = rand.nextInt(SHAPES.length);
+        int[][] s = SHAPES[idx];
+        int color = COLORS[idx];
+        return new Block(s, color);
+    }
+
+    /**
+     * 将方块顺时针旋转90度。
+     * @return 旋转后的新形状数组
+     */
+    public int[][] rotate() {
+        int n = shape.length, m = shape[0].length;
+        int[][] rotated = new int[m][n];
+        for (int i = 0; i < n; i++)
+            for (int j = 0; j < m; j++)
+                rotated[j][n - 1 - i] = shape[i][j];
+        return rotated;
+    }
+}
+        </code></pre>
+        </div>
+
+        <h3>GameData.java</h3>
+        <div class="appendix-code">
+        <pre><code>package org.example;
+
+import java.io.Serializable;
+
+/**
+ * 用于封装游戏状态的数据类。
+ * &lt;p&gt;
+ * 这个类的对象可以被序列化，用于实现游戏的保存和加载功能。
+ * 它包含了恢复一局游戏所需的所有关键信息。
+ * &lt;/p&gt;
+ */
+public class GameData implements Serializable {
+    /** 游戏棋盘的布局 */
+    public int[][] board;
+    /** 当前正在下落的方块 */
+    public Block currentBlock;
+    /** 当前方块的行、列坐标 */
+    public int curRow, curCol;
+    /** 当前分数 */
+    public int score;
+    /** 游戏是否在运行（用于区分游戏结束和未开始） */
+    public boolean running;
+    /** 游戏是否已结束 */
+    public boolean gameOver;
+
+    /**
+     * 构造函数。
+     * @param board 游戏棋盘
+     * @param currentBlock 当前方块
+     * @param curRow 当前方块的行
+     * @param curCol 当前方块的列
+     * @param score 分数
+     * @param running 游戏是否运行中
+     * @param gameOver 游戏是否已结束
+     */
+    public GameData(int[][] board, Block currentBlock, int curRow, int curCol, int score, boolean running, boolean gameOver) {
+        this.board = new int[board.length][board[0].length];
+        for (int i = 0; i < board.length; i++)
+            System.arraycopy(board[i], 0, this.board[i], 0, board[0].length);
+        this.currentBlock = currentBlock;
+        this.curRow = curRow;
+        this.curCol = curCol;
+        this.score = score;
+        this.running = running;
+        this.gameOver = gameOver;
+    }
+}
+        </code></pre>
+        </div>
+
+        <h3>HighScoreEntry.java</h3>
+        <div class="appendix-code">
+        <pre><code>package org.example;
+
+/**
+ * 排行榜条目，用于记录玩家姓名和分数。
+ * &lt;p&gt;
+ * 实现 {@link Comparable} 接口，以便于按分数从高到低进行排序。
+ * &lt;/p&gt;
+ */
+public class HighScoreEntry implements Comparable&lt;HighScoreEntry&gt; {
+    private final String name;
+    private final int score;
+
+    /**
+     * 构造函数。
+     * @param name 玩家姓名
+     * @param score 玩家分数
+     */
+    public HighScoreEntry(String name, int score) {
+        this.name = name;
+        this.score = score;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public int getScore() {
+        return score;
+    }
+
+    /**
+     * 比较两个排行榜条目，用于排序。
+     * @param other 另一个要比较的条目
+     * @return 负数、零或正数，表示此对象小于、等于或大于指定对象。
+     */
+    @Override
+    public int compareTo(HighScoreEntry other) {
+        return Integer.compare(other.score, this.score); // 降序排列
+    }
+
+    /**
+     * 将条目转换为字符串，用于文件存储。
+     * @return 格式化的字符串，如 "姓名： Alice | 分数： 1200"
+     */
+    @Override
+    public String toString() {
+        return "姓名： " + name + " | 分数： " + score; // 用于文件存储
+    }
+}
+        </code></pre>
+        </div>
+
+        <h3>HighScoreManager.java</h3>
+        <div class="appendix-code">
+        <pre><code>package org.example;
+
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+/**
+ * 排行榜管理器。
+ * &lt;p&gt;
+ * 负责从文本文件 ({@code tetris_leaderboard.txt}) 中加载和保存排行榜数据。
+ * 它管理一个 {@link HighScoreEntry} 列表，并提供添加新纪录、获取排行榜、
+ * 以及判断分数是否足够高等功能。
+ * &lt;/p&gt;
+ */
+public class HighScoreManager {
+    /** 排行榜数据文件名 */
+    private static final String FILE_NAME = "tetris_leaderboard.txt";
+    /** 排行榜上最多记录的条目数 */
+    private static final int MAX_SCORES = 10;
+    /** 存储排行榜条目的列表 */
+    private List&lt;HighScoreEntry&gt; scores;
+
+    /**
+     * 构造函数，初始化并加载排行榜数据。
+     */
+    public HighScoreManager() {
+        scores = new ArrayList&lt;&gt;();
+        load();
+    }
+
+    /**
+     * 获取当前排行榜的只读列表。
+     * @return 一个不可修改的排行榜列表
+     */
+    public List&lt;HighScoreEntry&gt; getHighScores() {
+        return Collections.unmodifiableList(scores);
+    }
+
+    /**
+     * 添加一个新的分数记录到排行榜。
+     * &lt;p&gt;
+     * 如果列表已满且新分数高于最低分，则替换最低分。
+     * 添加后会自动排序并保存到文件。
+     * &lt;/p&gt;
+     * @param name 玩家姓名
+     * @param score 玩家分数
+     */
+    public void addScore(String name, int score) {
+        scores.add(new HighScoreEntry(name, score));
+        Collections.sort(scores);
+        // 如果超出最大数量，则移除末尾的（即分数最低的）
+        if (scores.size() &gt; MAX_SCORES) {
+            scores = scores.subList(0, MAX_SCORES);
+        }
+        save();
+    }
+
+    /**
+     * 判断一个分数是否足够高，可以进入排行榜。
+     * @param score 要判断的分数
+     * @return 如果排行榜未满，或分数高于榜上最低分，则返回 true。
+     */
+    public boolean isHighScore(int score) {
+        if (scores.size() &lt; MAX_SCORES) {
+            return true;
+        }
+        // 因为列表是降序的，所以最后一个是最低分
+        return score &gt; scores.get(scores.size() - 1).getScore();
+    }
+
+    /**
+     * 从 {@code .txt} 文件加载排行榜数据。
+     * &lt;p&gt;
+     * 会自动处理文件不存在或格式错误的情况。
+     * &lt;/p&gt;
+     */
+    private void load() {
+        File file = new File(FILE_NAME);
+        if (!file.exists()) return;
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                // 解析格式: "姓名： name | 分数： score"
+                String[] parts = line.split(" \\| ");
+                if (parts.length == 2) {
+                    try {
+                        String namePart = parts[0];
+                        String scorePart = parts[1];
+                        if (namePart.startsWith("姓名： ") && scorePart.startsWith("分数： ")) {
+                            String name = namePart.substring("姓名： ".length()).trim();
+                            int scoreNum = Integer.parseInt(scorePart.substring("分数： ".length()).trim());
+                            scores.add(new HighScoreEntry(name, scoreNum));
+                        }
+                    } catch (Exception ignored) {
+                        // 忽略格式错误的行
+                    }
+                }
+            }
+            Collections.sort(scores);
+        } catch (IOException e) {
+            // 文件读取失败，忽略
+        }
+    }
+
+    /**
+     * 将当前的排行榜数据保存到 {@code .txt} 文件。
+     */
+    private void save() {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
+            for (HighScoreEntry entry : scores) {
+                writer.write(entry.toString());
+                writer.newLine();
+            }
+        } catch (IOException e) {
+            // 文件写入失败，忽略
+        }
+    }
+}
+        </code></pre>
+        </div>
+        
+        <h3>NextBlockPanel.java</h3>
+        <div class="appendix-code">
+        <pre><code>package org.example;
+
+import javax.swing.*;
+import java.awt.*;
+
+/**
+ * 用于显示下一个将要出现的方块的预览面板 (JPanel)。
+ */
+public class NextBlockPanel extends JPanel {
+    /** 下一个要显示的方块 */
+    private Block nextBlock;
+    /** 预览区域内，每个小格子的尺寸 */
+    private static final int BLOCK_SIZE = 20;
+    /** 颜色数组，与 TetrisPanel 保持一致 */
+    private static final Color[] COLORS = {
+            Color.BLACK, Color.CYAN, Color.BLUE, Color.ORANGE, Color.YELLOW, Color.GREEN, Color.MAGENTA, Color.RED
+    };
+
+    /**
+     * 构造函数，设置面板的基本属性。
+     */
+    public NextBlockPanel() {
+        setPreferredSize(new Dimension(6 * BLOCK_SIZE, 6 * BLOCK_SIZE));
+        setBackground(Color.WHITE);
+    }
+
+    /**
+     * 设置要预览的下一个方块。
+     * @param block 要显示的 Block 对象
+     */
+    public void setNextBlock(Block block) {
+        this.nextBlock = block;
+        repaint(); // 更新显示
+    }
+
+    /**
+     * 绘制预览方块。
+     * &lt;p&gt;
+     * 方块会被绘制在面板的中央。
+     * &lt;/p&gt;
+     * @param g 绘图上下文
+     */
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        if (nextBlock == null) return;
+
+        // 计算偏移量，使方块居中
+        int[][] shape = nextBlock.shape;
+        int colorIdx = nextBlock.colorIndex;
+        int offsetX = (getWidth() - shape[0].length * BLOCK_SIZE) / 2;
+        int offsetY = (getHeight() - shape.length * BLOCK_SIZE) / 2;
+
+        // 绘制方块
+        g.setColor(COLORS[colorIdx]);
+        for (int r = 0; r < shape.length; r++) {
+            for (int c = 0; c < shape[0].length; c++) {
+                if (shape[r][c] != 0) {
+                    g.fill3DRect(offsetX + c * BLOCK_SIZE, offsetY + r * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE, true);
+                }
+            }
+        }
+
+        // 绘制边框
+        g.setColor(Color.GRAY);
+        g.drawRect(0, 0, getWidth() - 1, getHeight() - 1);
+    }
+}
+        </code></pre>
+        </div>
+        
+        <h3>TetrisPanel.java</h3>
+        <div class="appendix-code">
+        <pre><code>package org.example;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.Arrays;
+import java.util.Random;
+
+/**
+ * 俄罗斯方块主游戏面板 (JPanel)
+ * ... [由于代码过长，此处省略部分注释和非核心代码，完整代码请见源文件]
+ */
+public class TetrisPanel extends JPanel implements ActionListener, KeyListener {
+    private static final int ROWS = 20;
+    private static final int COLS = 10;
+    private static final int BLOCK_SIZE = 28;
+    private static final Color[] COLORS = {
+            Color.BLACK, Color.CYAN, Color.BLUE, Color.ORANGE, Color.YELLOW, Color.GREEN, Color.MAGENTA, Color.RED
+    };
+    private int[][] board = new int[ROWS][COLS];
+    private Block currentBlock;
+    private Block nextBlock;
+    private int curRow, curCol;
+    private javax.swing.Timer timer;
+    private boolean running = false;
+    private boolean paused = false;
+    private TetrisGame parent;
+    private int score = 0;
+    private boolean gameOver = false;
+    private int speed = 400;
+    private javax.swing.Timer countdownTimer;
+    private int countdownValue;
+
+    public TetrisPanel(TetrisGame parent) {
+        this.parent = parent;
+        setPreferredSize(new Dimension(COLS * BLOCK_SIZE, ROWS * BLOCK_SIZE));
+        setBackground(Color.WHITE);
+        setFocusable(true);
+        addKeyListener(this);
+    }
+
+    public void startNewGame() {
+        for (int[] row : board) Arrays.fill(row, 0);
+        score = 0;
+        gameOver = false;
+        speed = 400;
+        running = false;
+        paused = false;
+
+        if (timer != null) timer.stop();
+        if (countdownTimer != null) countdownTimer.stop();
+
+        nextBlock = Block.randomBlock();
+        spawnBlock(); 
+
+        parent.setNextBlock(nextBlock);
+        repaint();
+
+        countdownValue = 5;
+        parent.showStatus("游戏将在 " + countdownValue + " 秒后开始...");
+        countdownTimer = new javax.swing.Timer(1000, this);
+        countdownTimer.start();
+    }
+
+    private void spawnBlock() {
+        currentBlock = nextBlock;
+        nextBlock = Block.randomBlock();
+        parent.setNextBlock(nextBlock);
+        curRow = 0;
+        curCol = COLS / 2 - 2;
+        if (!canMove(curRow, curCol, currentBlock.shape)) {
+            running = false;
+            if(timer != null) timer.stop();
+            gameOver = true;
+            parent.showGameOver(false, score);
+        }
+    }
+
+    private boolean canMove(int row, int col, int[][] shape) {
+        for (int r = 0; r < shape.length; r++) {
+            for (int c = 0; c < shape[0].length; c++) {
+                if (shape[r][c] != 0) {
+                    int nr = row + r, nc = col + c;
+                    if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) return false;
+                    if (board[nr][nc] != 0) return false;
+                }
+            }
+        }
+        return true;
+    }
+    
+    //...篇幅原因，省略 mergeBlock, clearLines, actionPerformed, paintComponent, keyPressed等方法的代码
+}
+        </code></pre>
+        </div>
+
+        <h3>TetrisGame.java</h3>
+        <div class="appendix-code">
+        <pre><code>package org.example;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+import java.io.*;
+import java.util.List;
+
+/**
+ * 游戏主窗口类 (JFrame)
+ * ... [由于代码过长，此处省略部分注释和非核心代码，完整代码请见源文件]
+ */
+public class TetrisGame extends JFrame {
+    private TetrisPanel tetrisPanel;
+    private NextBlockPanel nextBlockPanel;
+    private JTextArea leaderboardArea;
+    private JLabel statusLabel;
+    private HighScoreManager highScoreManager;
+    private boolean paused = false;
+
+    public TetrisGame() {
+        setTitle("简易俄罗斯方块");
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+        setSize(500, 650);
+        setLocationRelativeTo(null);
+        setLayout(new BorderLayout());
+
+        setupRightPanel();
+
+        statusLabel = new JLabel("欢迎来到俄罗斯方块！", SwingConstants.CENTER);
+        statusLabel.setFont(new Font("微软雅黑", Font.BOLD, 18));
+        add(statusLabel, BorderLayout.SOUTH);
+
+        highScoreManager = new HighScoreManager();
+        updateLeaderboardDisplay();
+
+        tetrisPanel = new TetrisPanel(this);
+        add(tetrisPanel, BorderLayout.CENTER);
+
+        setupMenuBar();
+        
+        setVisible(true);
+    }
+    
+    private void setupRightPanel() {
+        JPanel rightPanel = new JPanel();
+        rightPanel.setLayout(new BoxLayout(rightPanel, BoxLayout.Y_AXIS));
+        rightPanel.setPreferredSize(new Dimension(160, 600));
+        //...
+        nextBlockPanel = new NextBlockPanel();
+        rightPanel.add(nextBlockPanel);
+        //...
+        leaderboardArea = new JTextArea();
+        //...
+        add(rightPanel, BorderLayout.EAST);
+    }
+    
+    private void setupMenuBar() {
+        JMenuBar menuBar = new JMenuBar();
+        JMenu gameMenu = new JMenu("游戏");
+        JMenuItem newGameItem = new JMenuItem("新游戏");
+        // ...
+        newGameItem.addActionListener(e -&gt; tetrisPanel.startNewGame());
+        // ...
+        setJMenuBar(menuBar);
+    }
+
+    public void showGameOver(boolean win, int score) {
+        // ...
+        boolean isHighScore = highScoreManager.isHighScore(score);
+        if (isHighScore) {
+            // ...
+        }
+        // ...
+    }
+    
+    //...篇幅原因，省略 saveGame, loadGame, updateLeaderboardDisplay等方法的代码
+}
+        </code></pre>
+        </div>
+
+    </div>
+</body>
+</html> 
